@@ -10,8 +10,10 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "用于拍摄你的多美卡收藏",
-        "NSPhotoLibraryUsageDescription": "用于从相册选择多美卡照片"
-      }
+        "NSPhotoLibraryUsageDescription": "用于从相册选择多美卡照片",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.xw666.TomicaCollectionapp"
     },
     "android": {
       "adaptiveIcon": {

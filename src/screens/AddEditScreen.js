@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useCarStore } from '../CarStore';
+import { normalizeImageUri } from '../storage';
 import { presetModels, presetColors, CUSTOM_MODEL_MARKER } from '../constants';
 import ColorSwatch from '../components/ColorSwatch';
 
@@ -33,20 +34,20 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
   const pickCamera = async () => {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) { Alert.alert('提示', '需要相机权限才能拍照'); return; }
-    const r = await ImagePicker.launchCameraAsync({ quality: 0.8 });
+    const r = await ImagePicker.launchCameraAsync({ quality: 0.7 });
     if (!r.canceled) {
       const uri = r.assets?.[0]?.uri ?? r.uri;
-      if (uri) setImageUri(uri);
+      if (uri) setImageUri(await normalizeImageUri(uri));
     }
   };
 
   const pickLibrary = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) { Alert.alert('提示', '需要相册权限才能选图'); return; }
-    const r = await ImagePicker.launchImageLibraryAsync({ quality: 0.8 });
+    const r = await ImagePicker.launchImageLibraryAsync({ quality: 0.7 });
     if (!r.canceled) {
       const uri = r.assets?.[0]?.uri ?? r.uri;
-      if (uri) setImageUri(uri);
+      if (uri) setImageUri(await normalizeImageUri(uri));
     }
   };
 
