@@ -13,7 +13,7 @@ import ColorSwatch from '../components/ColorSwatch';
 import ColorPicker from '../components/ColorPicker';
 
 export default function AddEditScreen({ carId, onDone, onCancel }) {
-  const { cars, addCar, updateCar } = useCarStore();
+  const { cars, addCar, updateCar, customModels, addCustomModel } = useCarStore();
   const { theme, glass } = useSettings();
   const s = createStyles(theme, glass);
   const editingCar = carId ? cars.find((c) => c.id === carId) : null;
@@ -41,13 +41,24 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
   const finalModelName = modelName === CUSTOM_MODEL_MARKER ? customModel.trim() : modelName.trim();
   const finalModelNumber = modelNumber.trim();
 
+  // 合并自定义车型（排前面）与预置车型
+  const allModels = useMemo(() => {
+    return [
+      ...customModels,
+      ...presetModels.filter((p) => !customModels.some((c) => c.name === p.name)),
+    ];
+  }, [customModels]);
+
   const shownModels = useMemo(() => {
     const q = modelSearch.trim().toLowerCase();
-    if (!q) return presetModels;
-    return presetModels.filter(
+    if (!q) return allModels;
+    return allModels.filter(
       (m) => m.name.toLowerCase().includes(q) || (m.number && m.number.includes(q))
     );
-  }, [modelSearch]);
+  }, [allModels, modelSearch]);
+
+  // 是否为自定义车型（不在预置清单里）
+  const isCustom = (name) => !presetModels.some((p) => p.name === name);
 
   const pickCamera = async () => {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
@@ -72,6 +83,10 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
   const save = async () => {
     const model = finalModelName;
     if (!model) { Alert.alert('提示', '请选择或输入型号'); return; }
+    // 自定义车型自动记住，下次可直接选
+    if (!presetModels.some((p) => p.name === model)) {
+      addCustomModel({ name: model, number: finalModelNumber });
+    }
     const data = {
       modelName: model,
       modelNumber: finalModelNumber,
@@ -140,8 +155,13 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
           {shownModels.map((m) => (
             <TouchableOpacity
               key={m.name}
-              style={[s.modelChip, glassSurface(theme, glass, 20), modelName === m.name && s.modelChipActive]}
-              onPress={() => { setModelName(m.name); }}
+              style={[
+                s.modelChip,
+                glassSurface(theme, glass, 20),
+                modelName === m.name && s.modelChipActive,
+                isCustom(m.name) && s.customChip,
+              ]}
+              onPress={() => { setModelName(m.name); setModelNumber(m.number); }}
             >
               <Text style={[s.modelChipText, modelName === m.name && s.modelChipTextActive]}>{m.name}</Text>
             </TouchableOpacity>
@@ -289,6 +309,7 @@ function createStyles(theme, glass) {
       marginRight: 8,
     },
     modelChipActive: { backgroundColor: theme.accent, borderColor: theme.accent },
+    customChip: { borderColor: theme.accent },
     modelChipText: { fontSize: 13, color: theme.chipText },
     modelChipTextActive: { color: '#fff', fontWeight: '600' },
     currencyRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 },
