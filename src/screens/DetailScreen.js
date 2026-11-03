@@ -122,7 +122,7 @@ export default function DetailScreen({ carId, onBack, onEdit, onDeleted }) {
 
 function createStyles(theme, glass) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: theme.bg },
+    container: { flex: 1, backgroundColor: glass ? 'transparent' : theme.bg },
     header: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
       paddingHorizontal: 16, paddingVertical: 12,
