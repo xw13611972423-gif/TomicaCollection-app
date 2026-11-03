@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
 } from 'react-native';
 import { hsvToHex, hexToHsv, isLightHex } from '../constants';
+import { useSettings } from '../SettingsStore';
 
 // 24 个色相（每 15° 一个）
 const HUES = Array.from({ length: 24 }, (_, i) => i * 15);
@@ -10,10 +11,10 @@ const SAT_STEPS = 8; // 饱和度列数
 const VAL_STEPS = 6; // 明度行数
 
 export default function ColorPicker({ value = '#E53935', onChange }) {
+  const { theme } = useSettings();
   const [hsv, setHsv] = useState(() => hexToHsv(value));
   const [hexText, setHexText] = useState(value);
 
-  // 外部 value 变化（如点预置色）时同步
   useEffect(() => {
     const current = hsvToHex(hsv.h, hsv.s, hsv.v);
     if ((value || '').toLowerCase() !== current.toLowerCase()) {
@@ -46,14 +47,14 @@ export default function ColorPicker({ value = '#E53935', onChange }) {
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.caption}>色相</Text>
+      <Text style={[styles.caption, { color: theme.text3 }]}>色相</Text>
       <View style={styles.hueRow}>
         {HUES.map((h) => {
           const active = Math.abs(h - hsv.h) < 8;
           return (
             <TouchableOpacity
               key={h}
-              style={[styles.hueCell, { backgroundColor: hsvToHex(h, 1, 1) }, active && styles.activeCell]}
+              style={[styles.hueCell, { backgroundColor: hsvToHex(h, 1, 1) }, active && { borderColor: theme.accent }]}
               onPress={() => commit({ h, s: hsv.s, v: hsv.v })}
               activeOpacity={0.8}
             />
@@ -61,7 +62,7 @@ export default function ColorPicker({ value = '#E53935', onChange }) {
         })}
       </View>
 
-      <Text style={styles.caption}>饱和度 / 明度</Text>
+      <Text style={[styles.caption, { color: theme.text3 }]}>饱和度 / 明度</Text>
       <View style={styles.svGrid}>
         {valValues.map((v, row) => (
           <View key={row} style={styles.svRow}>
@@ -72,7 +73,7 @@ export default function ColorPicker({ value = '#E53935', onChange }) {
               return (
                 <TouchableOpacity
                   key={col}
-                  style={[styles.svCell, { backgroundColor: c }, active && styles.activeCell]}
+                  style={[styles.svCell, { backgroundColor: c }, active && { borderColor: theme.accent }]}
                   onPress={() => commit({ h: hsv.h, s, v })}
                   activeOpacity={0.8}
                 >
@@ -85,10 +86,11 @@ export default function ColorPicker({ value = '#E53935', onChange }) {
       </View>
 
       <View style={styles.hexRow}>
-        <View style={[styles.preview, { backgroundColor: hsvToHex(hsv.h, hsv.s, hsv.v) }]} />
+        <View style={[styles.preview, { backgroundColor: hsvToHex(hsv.h, hsv.s, hsv.v), borderColor: theme.border }]} />
         <TextInput
-          style={styles.hexInput}
+          style={[styles.hexInput, { backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }]}
           placeholder="#FF0000"
+          placeholderTextColor={theme.placeholder}
           value={hexText}
           onChangeText={applyHexText}
           autoCapitalize="characters"
@@ -101,21 +103,20 @@ export default function ColorPicker({ value = '#E53935', onChange }) {
 
 const styles = StyleSheet.create({
   wrap: { marginTop: 4 },
-  caption: { fontSize: 12, color: '#888', marginBottom: 6, marginTop: 8 },
+  caption: { fontSize: 12, marginBottom: 6, marginTop: 8 },
   hueRow: { flexDirection: 'row' },
-  hueCell: { flex: 1, height: 26, marginHorizontal: 1, borderRadius: 4 },
-  activeCell: { borderWidth: 2, borderColor: '#1E88E5' },
+  hueCell: { flex: 1, height: 26, marginHorizontal: 1, borderRadius: 5, borderWidth: 2, borderColor: 'transparent' },
   svGrid: { flexDirection: 'column' },
   svRow: { flexDirection: 'row' },
   svCell: {
-    flex: 1, aspectRatio: 1, margin: 1, borderRadius: 4,
-    alignItems: 'center', justifyContent: 'center',
+    flex: 1, aspectRatio: 1, margin: 1, borderRadius: 5,
+    alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'transparent',
   },
   check: { fontSize: 14, fontWeight: 'bold' },
   hexRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
-  preview: { width: 44, height: 44, borderRadius: 8, borderWidth: 1, borderColor: '#ddd' },
+  preview: { width: 44, height: 44, borderRadius: 12, borderWidth: 1 },
   hexInput: {
-    flex: 1, marginLeft: 10, backgroundColor: '#fff', borderRadius: 10,
-    paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, borderWidth: 1, borderColor: '#eee',
+    flex: 1, marginLeft: 10, borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, borderWidth: 1,
   },
 });
