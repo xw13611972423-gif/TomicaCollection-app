@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { useCarStore } from '../CarStore';
 import { useSettings } from '../SettingsStore';
+import { glassSurface } from '../theme';
 
 function TrashIcon({ color }) {
   return (
@@ -20,7 +21,7 @@ export default function DetailScreen({ carId, onBack, onEdit, onDeleted }) {
   const { width } = useWindowDimensions();
   const wide = width >= 700;
   const car = cars.find((c) => c.id === carId);
-  const s = createStyles(theme);
+  const s = createStyles(theme, glass);
 
   if (!car) {
     return (
@@ -45,11 +46,12 @@ export default function DetailScreen({ carId, onBack, onEdit, onDeleted }) {
   };
 
   const headerStyle = glass
-    ? { backgroundColor: theme.glass, borderBottomColor: theme.glassBorder }
+    ? { backgroundColor: theme.glassStrong, borderBottomColor: theme.glassBorder }
     : { backgroundColor: theme.card, borderBottomColor: theme.border };
-  const cardStyle = glass
-    ? { backgroundColor: theme.glass, borderColor: theme.glassBorder }
-    : { backgroundColor: theme.card, borderColor: theme.border };
+  const delStyle = glass
+    ? { backgroundColor: theme.dangerSoft, borderWidth: 1, borderColor: theme.danger }
+    : { backgroundColor: theme.danger };
+  const trashColor = glass ? theme.danger : '#fff';
 
   const image = car.imageUri ? (
     <Image
@@ -64,7 +66,7 @@ export default function DetailScreen({ carId, onBack, onEdit, onDeleted }) {
   );
 
   const info = (
-    <View style={[s.infoCard, cardStyle, wide && s.infoCardWide]}>
+    <View style={[s.infoCard, glassSurface(theme, glass, 18, true), wide && s.infoCardWide]}>
       <View style={s.modelRow}>
         <Text style={s.modelName}>{car.modelName}</Text>
         {car.modelNumber ? <Text style={s.number}>No. {car.modelNumber}</Text> : null}
@@ -93,10 +95,10 @@ export default function DetailScreen({ carId, onBack, onEdit, onDeleted }) {
           </TouchableOpacity>
           <TouchableOpacity
             onPress={confirmDelete}
-            style={[s.delBtn, { backgroundColor: theme.danger }]}
+            style={[s.delBtn, delStyle]}
             activeOpacity={0.8}
           >
-            <TrashIcon color="#fff" />
+            <TrashIcon color={trashColor} />
           </TouchableOpacity>
         </View>
       </View>
@@ -118,7 +120,7 @@ export default function DetailScreen({ carId, onBack, onEdit, onDeleted }) {
   );
 }
 
-function createStyles(theme) {
+function createStyles(theme, glass) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.bg },
     header: {
@@ -139,7 +141,7 @@ function createStyles(theme) {
     image: { width: '100%', height: 300, borderRadius: 18, backgroundColor: theme.chip },
     imageWide: { flex: 1, height: 340 },
     imageEmpty: { alignItems: 'center', justifyContent: 'center' },
-    infoCard: { borderRadius: 18, padding: 16, marginTop: 16, borderWidth: 1, borderColor: theme.border },
+    infoCard: { padding: 16, marginTop: 16, borderWidth: 1, borderColor: theme.border },
     infoCardWide: { flex: 1, marginTop: 0, marginLeft: 16 },
     modelRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
     modelName: { fontSize: 20, fontWeight: '700', color: theme.text },
