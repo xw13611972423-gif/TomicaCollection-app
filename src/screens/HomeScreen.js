@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useCarStore } from '../CarStore';
 import { useSettings } from '../SettingsStore';
+import { glassSurface } from '../theme';
 import { presetModels, presetColors } from '../constants';
 import CarCard from '../components/CarCard';
 
@@ -13,7 +14,7 @@ export default function HomeScreen({ onAdd, onOpen, onSettings }) {
   const { theme, glass } = useSettings();
   const { width } = useWindowDimensions();
   const numColumns = width >= 1024 ? 5 : width >= 768 ? 4 : width >= 600 ? 3 : 2;
-  const s = createStyles(theme);
+  const s = createStyles(theme, glass);
 
   const [search, setSearch] = useState('');
   const [filterModel, setFilterModel] = useState(null);
@@ -37,28 +38,25 @@ export default function HomeScreen({ onAdd, onOpen, onSettings }) {
   const hasFilter = !!(filterModel || filterColor || search);
 
   const headerStyle = glass
-    ? { backgroundColor: theme.glass, borderBottomColor: theme.glassBorder }
+    ? { backgroundColor: theme.glassStrong, borderBottomColor: theme.glassBorder }
     : { backgroundColor: theme.card, borderBottomColor: theme.border };
-  const panelStyle = glass
-    ? { backgroundColor: theme.glass, borderColor: theme.glassBorder }
-    : { backgroundColor: theme.card, borderColor: theme.border };
 
   return (
     <View style={s.container}>
       {/* 顶栏 */}
       <View style={[s.header, headerStyle]}>
-        <TouchableOpacity style={s.gearBtn} onPress={onSettings} activeOpacity={0.7}>
+        <TouchableOpacity style={[s.gearBtn, glassSurface(theme, glass, 17)]} onPress={onSettings} activeOpacity={0.7}>
           <Text style={s.gear}>⚙</Text>
         </TouchableOpacity>
         <Text style={s.title}>我的多美卡</Text>
-        <TouchableOpacity style={s.addBtn} onPress={onAdd} activeOpacity={0.8}>
-          <Text style={s.addBtnText}>＋ 添加</Text>
+        <TouchableOpacity style={[s.addBtn, glass && { backgroundColor: theme.accentSoft, borderWidth: 1, borderColor: theme.accent }]} onPress={onAdd} activeOpacity={0.8}>
+          <Text style={[s.addBtnText, glass && { color: theme.accent }]}>＋ 添加</Text>
         </TouchableOpacity>
       </View>
 
       {/* 搜索 */}
       <TextInput
-        style={s.search}
+        style={[s.search, glassSurface(theme, glass, 14)]}
         placeholder="搜索型号 / 编号 / 颜色 / 备注"
         placeholderTextColor={theme.placeholder}
         value={search}
@@ -68,7 +66,7 @@ export default function HomeScreen({ onAdd, onOpen, onSettings }) {
       {/* 筛选按钮 */}
       <View style={s.filterRow}>
         <TouchableOpacity
-          style={[s.filterBtn, hasFilter && s.filterBtnActive]}
+          style={[s.filterBtn, glassSurface(theme, glass, 20), hasFilter && { borderColor: theme.accent }]}
           onPress={() => setShowFilter((v) => !v)}
         >
           <Text style={[s.filterBtnText, hasFilter && s.filterBtnTextActive]}>
@@ -85,21 +83,22 @@ export default function HomeScreen({ onAdd, onOpen, onSettings }) {
 
       {/* 筛选面板 */}
       {showFilter && (
-        <View style={[s.filterPanel, panelStyle]}>
+        <View style={[s.filterPanel, glassSurface(theme, glass, 18, true)]}>
           <Text style={s.filterLabel}>按型号</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 6 }}>
-            <Chip theme={theme} label="全部" active={!filterModel} onPress={() => setFilterModel(null)} />
+            <Chip theme={theme} glass={glass} label="全部" active={!filterModel} onPress={() => setFilterModel(null)} />
             {presetModels.map((m) => (
-              <Chip key={m.name} theme={theme} label={m.name} active={filterModel === m.name} onPress={() => setFilterModel(m.name)} />
+              <Chip key={m.name} theme={theme} glass={glass} label={m.name} active={filterModel === m.name} onPress={() => setFilterModel(m.name)} />
             ))}
           </ScrollView>
           <Text style={s.filterLabel}>按颜色</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <Chip theme={theme} label="全部" active={!filterColor} onPress={() => setFilterColor(null)} />
+            <Chip theme={theme} glass={glass} label="全部" active={!filterColor} onPress={() => setFilterColor(null)} />
             {presetColors.map((c) => (
               <Chip
                 key={c.name}
                 theme={theme}
+                glass={glass}
                 label={c.name}
                 dot={c.hex}
                 active={filterColor === c.name}
@@ -143,13 +142,13 @@ export default function HomeScreen({ onAdd, onOpen, onSettings }) {
   );
 }
 
-function Chip({ theme, label, active, onPress, dot }) {
+function Chip({ theme, glass, label, active, onPress, dot }) {
   return (
     <TouchableOpacity
       style={[
         styles.chip,
-        { backgroundColor: theme.chip },
-        active && { backgroundColor: theme.accent },
+        glassSurface(theme, glass, 18),
+        active && { backgroundColor: theme.accent, borderColor: theme.accent },
       ]}
       onPress={onPress}
       activeOpacity={0.7}
@@ -160,7 +159,7 @@ function Chip({ theme, label, active, onPress, dot }) {
   );
 }
 
-function createStyles(theme) {
+function createStyles(theme, glass) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.bg },
     header: {
@@ -170,23 +169,19 @@ function createStyles(theme) {
     },
     gearBtn: {
       width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center',
-      backgroundColor: theme.chip,
     },
     gear: { fontSize: 18, color: theme.text2 },
     title: { flex: 1, fontSize: 22, fontWeight: '700', color: theme.text, marginLeft: 12 },
-    addBtn: { backgroundColor: theme.accent, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 22 },
+    addBtn: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 22, backgroundColor: theme.accent },
     addBtnText: { color: '#fff', fontWeight: '600', fontSize: 15 },
     search: {
       marginHorizontal: 16, marginTop: 10, marginBottom: 8, paddingHorizontal: 16, paddingVertical: 10,
-      backgroundColor: theme.card, borderRadius: 14, fontSize: 14, color: theme.text,
-      borderWidth: 1, borderColor: theme.border,
+      fontSize: 14, color: theme.text,
     },
     filterRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 6 },
     filterBtn: {
-      paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
-      backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border,
+      paddingHorizontal: 16, paddingVertical: 8,
     },
-    filterBtnActive: { backgroundColor: theme.accentSoft, borderColor: theme.accent },
     filterBtnText: { fontSize: 13, color: theme.text2 },
     filterBtnTextActive: { color: theme.accent, fontWeight: '600' },
     activeChip: {
@@ -195,7 +190,6 @@ function createStyles(theme) {
     },
     filterPanel: {
       marginHorizontal: 16, marginBottom: 8, padding: 14,
-      borderRadius: 18, borderWidth: 1,
     },
     filterLabel: { fontSize: 13, fontWeight: '600', color: theme.text2, marginBottom: 4 },
     clearText: { marginTop: 8, color: theme.danger, fontSize: 13 },
@@ -209,7 +203,7 @@ function createStyles(theme) {
 const styles = StyleSheet.create({
   chip: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: 18, marginRight: 8,
+    marginRight: 8,
   },
   chipText: { fontSize: 13 },
   chipDot: { width: 10, height: 10, borderRadius: 5, marginRight: 5 },
