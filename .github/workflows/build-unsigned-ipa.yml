@@ -70,16 +70,19 @@ jobs:
 
       - name: Package IPA
         run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
           APP=$(find ios/build/Build/Products/Release-iphoneos -maxdepth 1 -name "*.app" | head -1)
           echo "App bundle: $APP"
           mkdir -p Payload
           cp -R "$APP" Payload/
-          zip -qry TomicaCollectionapp-unsigned.ipa Payload
-          ls -lh TomicaCollectionapp-unsigned.ipa
+          IPA="TomicaCollectionapp-${VERSION}-unsigned.ipa"
+          zip -qry "$IPA" Payload
+          ls -lh "$IPA"
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: TomicaCollectionapp-unsigned.ipa
-          path: TomicaCollectionapp-unsigned.ipa
+          name: TomicaCollectionapp-${{ env.VERSION }}-unsigned.ipa
+          path: TomicaCollectionapp-*-unsigned.ipa
           retention-days: 7
