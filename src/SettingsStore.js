@@ -11,6 +11,7 @@ export function SettingsProvider({ children }) {
   const systemScheme = useColorScheme(); // 'light' | 'dark' | null
   const [mode, setModeState] = useState('system'); // 'system' | 'light' | 'dark'
   const [glass, setGlassState] = useState(true);
+  const [emptyImageUri, setEmptyImageUriState] = useState(null);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -21,6 +22,7 @@ export function SettingsProvider({ children }) {
           const p = JSON.parse(raw);
           if (p.mode) setModeState(p.mode);
           if (typeof p.glass === 'boolean') setGlassState(p.glass);
+          if (p.emptyImageUri) setEmptyImageUriState(p.emptyImageUri);
         }
       } catch (e) {
         // 忽略
@@ -41,6 +43,7 @@ export function SettingsProvider({ children }) {
 
   const setMode = (m) => { setModeState(m); persist({ mode: m }); };
   const setGlass = (g) => { setGlassState(g); persist({ glass: g }); };
+  const setEmptyImageUri = (uri) => { setEmptyImageUriState(uri); persist({ emptyImageUri: uri }); };
 
   const resolved = mode === 'system' ? (systemScheme === 'dark' ? 'dark' : 'light') : mode;
   const theme = useMemo(() => createTheme(resolved), [resolved]);
@@ -52,6 +55,8 @@ export function SettingsProvider({ children }) {
         setMode,
         glass,
         setGlass,
+        emptyImageUri,
+        setEmptyImageUri,
         isDark: resolved === 'dark',
         theme,
         loaded,
