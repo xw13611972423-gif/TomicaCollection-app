@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   View, Text, TextInput, FlatList, TouchableOpacity,
-  ScrollView, StyleSheet,
+  ScrollView, StyleSheet, useWindowDimensions,
 } from 'react-native';
 import { useCarStore } from '../CarStore';
 import { presetModels, presetColors } from '../constants';
@@ -9,6 +9,8 @@ import CarCard from '../components/CarCard';
 
 export default function HomeScreen({ onAdd, onOpen }) {
   const { cars } = useCarStore();
+  const { width } = useWindowDimensions();
+  const numColumns = width >= 1024 ? 5 : width >= 768 ? 4 : width >= 600 ? 3 : 2;
   const [search, setSearch] = useState('');
   const [filterModel, setFilterModel] = useState(null);
   const [filterColor, setFilterColor] = useState(null);
@@ -20,7 +22,7 @@ export default function HomeScreen({ onAdd, onOpen }) {
       if (filterColor && c.colorName !== filterColor) return false;
       if (search) {
         const q = search.toLowerCase();
-        const hay = `${c.modelName} ${c.colorName} ${c.note}`.toLowerCase();
+        const hay = `${c.modelName} ${c.colorName} ${c.note} ${c.price} ${c.currency} ${c.purchaseLocation}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -110,7 +112,7 @@ export default function HomeScreen({ onAdd, onOpen }) {
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.id}
-          numColumns={2}
+          numColumns={numColumns}
           columnWrapperStyle={{ flex: 1 }}
           renderItem={({ item }) => <CarCard car={item} onPress={() => onOpen(item.id)} />}
           ListEmptyComponent={
