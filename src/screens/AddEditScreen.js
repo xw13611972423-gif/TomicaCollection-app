@@ -11,6 +11,7 @@ import { normalizeImageUri } from '../storage';
 import { presetModels, presetColors, presetCurrencies, presetLocations, CUSTOM_MODEL_MARKER } from '../constants';
 import ColorSwatch from '../components/ColorSwatch';
 import ColorPicker from '../components/ColorPicker';
+import ImageEditBar from '../components/ImageEditBar';
 
 export default function AddEditScreen({ carId, onDone, onCancel }) {
   const { cars, addCar, updateCar, customModels, addCustomModel } = useCarStore();
@@ -141,6 +142,10 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
             </TouchableOpacity>
           ) : null}
         </View>
+
+        {imageUri ? (
+          <ImageEditBar uri={imageUri} onChange={(u) => setImageUri(u)} />
+        ) : null}
 
         {/* 型号 */}
         <Text style={s.label}>型号</Text>
@@ -280,7 +285,7 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
 
 function createStyles(theme, glass) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: theme.bg },
+    container: { flex: 1, backgroundColor: glass ? 'transparent' : theme.bg },
     header: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
       paddingHorizontal: 16, paddingVertical: 14,
