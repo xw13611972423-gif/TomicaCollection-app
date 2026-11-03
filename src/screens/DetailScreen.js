@@ -1,11 +1,13 @@
 import React from 'react';
 import {
-  View, Text, Image, TouchableOpacity, ScrollView, Alert, StyleSheet,
+  View, Text, Image, TouchableOpacity, ScrollView, Alert, StyleSheet, useWindowDimensions,
 } from 'react-native';
 import { useCarStore } from '../CarStore';
 
 export default function DetailScreen({ carId, onBack, onEdit, onDeleted }) {
   const { cars, deleteCar } = useCarStore();
+  const { width } = useWindowDimensions();
+  const wide = width >= 700;
   const car = cars.find((c) => c.id === carId);
 
   if (!car) {
@@ -30,6 +32,34 @@ export default function DetailScreen({ carId, onBack, onEdit, onDeleted }) {
     ]);
   };
 
+  const image = car.imageUri ? (
+    <Image
+      source={{ uri: car.imageUri }}
+      style={[styles.image, wide && styles.imageWide]}
+      resizeMode="contain"
+    />
+  ) : (
+    <View style={[styles.image, wide && styles.imageWide, styles.imageEmpty]}>
+      <Text style={{ fontSize: 70 }}>🚗</Text>
+    </View>
+  );
+
+  const info = (
+    <View style={[styles.infoCard, wide && styles.infoCardWide]}>
+      <Text style={styles.modelName}>{car.modelName}</Text>
+      <View style={styles.colorRow}>
+        <View style={[styles.dot, { backgroundColor: car.colorHex || '#999' }]} />
+        <Text style={styles.colorName}>{car.colorName}</Text>
+      </View>
+      {car.price ? <Text style={styles.meta}>价格：{car.currency}{car.price}</Text> : null}
+      {car.purchaseLocation ? <Text style={styles.meta}>购买地：{car.purchaseLocation}</Text> : null}
+      {car.note ? <Text style={styles.note}>备注：{car.note}</Text> : null}
+      <Text style={styles.date}>
+        收藏时间：{new Date(car.dateAdded).toLocaleString()}
+      </Text>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -46,25 +76,17 @@ export default function DetailScreen({ carId, onBack, onEdit, onDeleted }) {
       </View>
 
       <ScrollView contentContainerStyle={styles.body}>
-        {car.imageUri ? (
-          <Image source={{ uri: car.imageUri }} style={styles.image} resizeMode="contain" />
+        {wide ? (
+          <View style={styles.wideRow}>
+            {image}
+            {info}
+          </View>
         ) : (
-          <View style={[styles.image, styles.imageEmpty]}>
-            <Text style={{ fontSize: 70 }}>🚗</Text>
-          </View>
+          <>
+            {image}
+            {info}
+          </>
         )}
-
-        <View style={styles.infoCard}>
-          <Text style={styles.modelName}>{car.modelName}</Text>
-          <View style={styles.colorRow}>
-            <View style={[styles.dot, { backgroundColor: car.colorHex || '#999' }]} />
-            <Text style={styles.colorName}>{car.colorName}</Text>
-          </View>
-          {car.note ? <Text style={styles.note}>备注：{car.note}</Text> : null}
-          <Text style={styles.date}>
-            收藏时间：{new Date(car.dateAdded).toLocaleString()}
-          </Text>
-        </View>
       </ScrollView>
     </View>
   );
@@ -83,13 +105,17 @@ const styles = StyleSheet.create({
   edit: { fontSize: 15, color: '#1E88E5', fontWeight: '600' },
   del: { fontSize: 17 },
   body: { padding: 16, paddingBottom: 40 },
+  wideRow: { flexDirection: 'row', alignItems: 'flex-start' },
   image: { width: '100%', height: 300, borderRadius: 12, backgroundColor: '#eee' },
+  imageWide: { flex: 1, height: 340 },
   imageEmpty: { alignItems: 'center', justifyContent: 'center' },
   infoCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginTop: 16 },
+  infoCardWide: { flex: 1, marginTop: 0, marginLeft: 16 },
   modelName: { fontSize: 20, fontWeight: '700', color: '#1a1a1a' },
   colorRow: { flexDirection: 'row', alignItems: 'center', marginTop: 10 },
   dot: { width: 16, height: 16, borderRadius: 8, marginRight: 8 },
   colorName: { fontSize: 16, color: '#444' },
+  meta: { fontSize: 15, color: '#444', marginTop: 10 },
   note: { fontSize: 14, color: '#555', marginTop: 12, lineHeight: 20 },
   date: { fontSize: 12, color: '#999', marginTop: 16 },
 });
