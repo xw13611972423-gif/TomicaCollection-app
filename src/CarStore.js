@@ -31,7 +31,7 @@ export function CarStoreProvider({ children }) {
 
   const makeId = () => `car_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-  const addCar = async ({ modelName, colorName, colorHex, note, imageUri }) => {
+  const addCar = async ({ modelName, colorName, colorHex, note, imageUri, price, currency, purchaseLocation }) => {
     let savedImage = null;
     if (imageUri) savedImage = await saveImageToDocuments(imageUri);
     const car = {
@@ -40,6 +40,9 @@ export function CarStoreProvider({ children }) {
       colorName,
       colorHex,
       note: note || '',
+      price: price != null ? String(price) : '',
+      currency: currency || '¥',
+      purchaseLocation: purchaseLocation || '',
       imageUri: savedImage,
       dateAdded: Date.now(),
     };
@@ -47,7 +50,7 @@ export function CarStoreProvider({ children }) {
     return car;
   };
 
-  const updateCar = async (id, { modelName, colorName, colorHex, note, imageUri }) => {
+  const updateCar = async (id, { modelName, colorName, colorHex, note, imageUri, price, currency, purchaseLocation }) => {
     const old = cars.find((c) => c.id === id);
     let savedImage = old ? old.imageUri : null;
     if (imageUri) {
@@ -63,7 +66,17 @@ export function CarStoreProvider({ children }) {
     }
     const next = cars.map((c) =>
       c.id === id
-        ? { ...c, modelName, colorName, colorHex, note: note || '', imageUri: savedImage }
+        ? {
+            ...c,
+            modelName,
+            colorName,
+            colorHex,
+            note: note || '',
+            price: price != null ? String(price) : '',
+            currency: currency || '¥',
+            purchaseLocation: purchaseLocation || '',
+            imageUri: savedImage,
+          }
         : c
     );
     persist(next);
