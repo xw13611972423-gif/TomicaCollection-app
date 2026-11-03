@@ -6,6 +6,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { useCarStore } from '../CarStore';
 import { useSettings } from '../SettingsStore';
+import { glassSurface } from '../theme';
 import { normalizeImageUri } from '../storage';
 import { presetModels, presetColors, presetCurrencies, presetLocations, CUSTOM_MODEL_MARKER } from '../constants';
 import ColorSwatch from '../components/ColorSwatch';
@@ -14,7 +15,7 @@ import ColorPicker from '../components/ColorPicker';
 export default function AddEditScreen({ carId, onDone, onCancel }) {
   const { cars, addCar, updateCar } = useCarStore();
   const { theme, glass } = useSettings();
-  const s = createStyles(theme);
+  const s = createStyles(theme, glass);
   const editingCar = carId ? cars.find((c) => c.id === carId) : null;
 
   const [modelName, setModelName] = useState(editingCar?.modelName || '');
@@ -44,7 +45,7 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
     const q = modelSearch.trim().toLowerCase();
     if (!q) return presetModels;
     return presetModels.filter(
-      (m) => m.name.toLowerCase().includes(q) || m.number.includes(q)
+      (m) => m.name.toLowerCase().includes(q) || (m.number && m.number.includes(q))
     );
   }, [modelSearch]);
 
@@ -88,7 +89,7 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
   };
 
   const headerStyle = glass
-    ? { backgroundColor: theme.glass, borderBottomColor: theme.glassBorder }
+    ? { backgroundColor: theme.glassStrong, borderBottomColor: theme.glassBorder }
     : { backgroundColor: theme.card, borderBottomColor: theme.border };
 
   return (
@@ -110,14 +111,17 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
           </View>
         )}
         <View style={s.btnRow}>
-          <TouchableOpacity style={s.photoBtn} onPress={pickCamera}>
+          <TouchableOpacity style={[s.photoBtn, glassSurface(theme, glass, 22)]} onPress={pickCamera}>
             <Text style={s.photoBtnText}>📷 拍照</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={s.photoBtn} onPress={pickLibrary}>
+          <TouchableOpacity style={[s.photoBtn, glassSurface(theme, glass, 22)]} onPress={pickLibrary}>
             <Text style={s.photoBtnText}>🖼 相册</Text>
           </TouchableOpacity>
           {imageUri ? (
-            <TouchableOpacity style={[s.photoBtn, s.photoBtnDanger]} onPress={() => setImageUri(null)}>
+            <TouchableOpacity
+              style={[s.photoBtn, glassSurface(theme, glass, 22), { borderColor: theme.danger }]}
+              onPress={() => setImageUri(null)}
+            >
               <Text style={s.photoBtnTextDanger}>移除</Text>
             </TouchableOpacity>
           ) : null}
@@ -136,14 +140,14 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
           {shownModels.map((m) => (
             <TouchableOpacity
               key={m.name}
-              style={[s.modelChip, modelName === m.name && s.modelChipActive]}
-              onPress={() => { setModelName(m.name); setModelNumber(m.number); }}
+              style={[s.modelChip, glassSurface(theme, glass, 20), modelName === m.name && s.modelChipActive]}
+              onPress={() => { setModelName(m.name); }}
             >
               <Text style={[s.modelChipText, modelName === m.name && s.modelChipTextActive]}>{m.name}</Text>
             </TouchableOpacity>
           ))}
           <TouchableOpacity
-            style={[s.modelChip, modelName === CUSTOM_MODEL_MARKER && s.modelChipActive]}
+            style={[s.modelChip, glassSurface(theme, glass, 20), modelName === CUSTOM_MODEL_MARKER && s.modelChipActive]}
             onPress={() => setModelName(CUSTOM_MODEL_MARKER)}
           >
             <Text style={[s.modelChipText, modelName === CUSTOM_MODEL_MARKER && s.modelChipTextActive]}>
@@ -165,13 +169,13 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
         )}
 
         {/* 编号 */}
-        <Text style={s.label}>编号（三位数）</Text>
+        <Text style={s.label}>编号（包装盒两位）</Text>
         <TextInput
           style={s.input}
-          placeholder="如：055"
+          placeholder="如：55"
           placeholderTextColor={theme.placeholder}
           keyboardType="number-pad"
-          maxLength={4}
+          maxLength={3}
           value={modelNumber}
           onChangeText={setModelNumber}
         />
@@ -182,7 +186,7 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
           {presetCurrencies.map((cur) => (
             <TouchableOpacity
               key={cur}
-              style={[s.curChip, currency === cur && s.curChipActive]}
+              style={[s.curChip, glassSurface(theme, glass, 18), currency === cur && s.curChipActive]}
               onPress={() => setCurrency(cur)}
             >
               <Text style={[s.curChipText, currency === cur && s.curChipTextActive]}>{cur}</Text>
@@ -204,7 +208,7 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
           {presetLocations.map((loc) => (
             <TouchableOpacity
               key={loc}
-              style={[s.modelChip, purchaseLocation === loc && s.modelChipActive]}
+              style={[s.modelChip, glassSurface(theme, glass, 20), purchaseLocation === loc && s.modelChipActive]}
               onPress={() => setPurchaseLocation(loc)}
             >
               <Text style={[s.modelChipText, purchaseLocation === loc && s.modelChipTextActive]}>{loc}</Text>
@@ -254,7 +258,7 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
   );
 }
 
-function createStyles(theme) {
+function createStyles(theme, glass) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.bg },
     header: {
@@ -271,10 +275,8 @@ function createStyles(theme) {
     previewEmpty: { alignItems: 'center', justifyContent: 'center' },
     btnRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 10, gap: 8 },
     photoBtn: {
-      paddingHorizontal: 16, paddingVertical: 9, borderRadius: 22,
-      backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border,
+      paddingHorizontal: 16, paddingVertical: 9,
     },
-    photoBtnDanger: { borderColor: theme.danger },
     photoBtnText: { fontSize: 14, color: theme.text },
     photoBtnTextDanger: { fontSize: 14, color: theme.danger },
     searchInput: {
@@ -283,17 +285,16 @@ function createStyles(theme) {
     },
     hint: { fontSize: 12, color: theme.danger, marginBottom: 8 },
     modelChip: {
-      paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
-      backgroundColor: theme.card, marginRight: 8, borderWidth: 1, borderColor: theme.border,
+      paddingHorizontal: 14, paddingVertical: 8,
+      marginRight: 8,
     },
     modelChipActive: { backgroundColor: theme.accent, borderColor: theme.accent },
     modelChipText: { fontSize: 13, color: theme.chipText },
     modelChipTextActive: { color: '#fff', fontWeight: '600' },
     currencyRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 },
     curChip: {
-      paddingHorizontal: 16, paddingVertical: 7, borderRadius: 18,
-      backgroundColor: theme.card, marginRight: 8, marginBottom: 4,
-      borderWidth: 1, borderColor: theme.border,
+      paddingHorizontal: 16, paddingVertical: 7,
+      marginRight: 8, marginBottom: 4,
     },
     curChipActive: { backgroundColor: theme.accent, borderColor: theme.accent },
     curChipText: { fontSize: 14, color: theme.chipText },
