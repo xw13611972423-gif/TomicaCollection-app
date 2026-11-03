@@ -3,10 +3,11 @@ import {
   View, Text, TouchableOpacity, Switch, ScrollView, StyleSheet,
 } from 'react-native';
 import { useSettings } from '../SettingsStore';
+import { glassSurface } from '../theme';
 
 export default function SettingsScreen({ onBack }) {
   const { mode, setMode, glass, setGlass, theme } = useSettings();
-  const s = createStyles(theme);
+  const s = createStyles(theme, glass);
 
   const modes = [
     { key: 'system', label: '跟随系统' },
@@ -16,7 +17,7 @@ export default function SettingsScreen({ onBack }) {
 
   return (
     <View style={s.container}>
-      <View style={s.header}>
+      <View style={[s.header, glassSurface(theme, glass, 0, true)]}>
         <TouchableOpacity onPress={onBack}><Text style={s.back}>‹ 返回</Text></TouchableOpacity>
         <Text style={s.title}>设置</Text>
         <View style={s.headerSpacer} />
@@ -24,8 +25,8 @@ export default function SettingsScreen({ onBack }) {
 
       <ScrollView contentContainerStyle={s.body}>
         <Text style={s.section}>外观</Text>
-        <View style={s.card}>
-          <View style={s.segRow}>
+        <View style={[s.card, glassSurface(theme, glass, 16, true)]}>
+          <View style={[s.segRow, glassSurface(theme, glass, 12)]}>
             {modes.map((m) => (
               <TouchableOpacity
                 key={m.key}
@@ -40,11 +41,11 @@ export default function SettingsScreen({ onBack }) {
         </View>
 
         <Text style={s.section}>效果</Text>
-        <View style={s.card}>
+        <View style={[s.card, glassSurface(theme, glass, 16, true)]}>
           <View style={s.row}>
             <View style={{ flex: 1 }}>
               <Text style={s.rowTitle}>液态玻璃</Text>
-              <Text style={s.rowSub}>卡片与顶栏的半透明质感</Text>
+              <Text style={s.rowSub}>卡片、顶栏与按钮的半透明质感</Text>
             </View>
             <Switch
               value={glass}
@@ -55,18 +56,18 @@ export default function SettingsScreen({ onBack }) {
           </View>
         </View>
 
-        <Text style={s.about}>多美卡收藏 · v1.1</Text>
+        <Text style={s.about}>多美卡收藏 · v1.2</Text>
       </ScrollView>
     </View>
   );
 }
 
-function createStyles(theme) {
+function createStyles(theme, glass) {
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.bg },
     header: {
       flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-      paddingHorizontal: 16, paddingVertical: 14, backgroundColor: theme.card,
+      paddingHorizontal: 16, paddingVertical: 14,
       borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.border,
     },
     title: { fontSize: 17, fontWeight: '600', color: theme.text },
@@ -74,8 +75,8 @@ function createStyles(theme) {
     headerSpacer: { width: 48 },
     body: { padding: 16, paddingBottom: 40 },
     section: { fontSize: 13, fontWeight: '600', color: theme.text3, marginTop: 8, marginBottom: 8, marginLeft: 4 },
-    card: { backgroundColor: theme.card, borderRadius: 16, padding: 16, marginBottom: 8 },
-    segRow: { flexDirection: 'row', backgroundColor: theme.chip, borderRadius: 12, padding: 3 },
+    card: { padding: 16, marginBottom: 8, borderWidth: 1, borderColor: theme.border },
+    segRow: { flexDirection: 'row', padding: 3 },
     seg: { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center' },
     segActive: { backgroundColor: theme.card },
     segText: { fontSize: 14, color: theme.chipText },
