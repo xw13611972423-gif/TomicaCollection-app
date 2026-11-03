@@ -4,13 +4,17 @@ import {
   ScrollView, StyleSheet, useWindowDimensions,
 } from 'react-native';
 import { useCarStore } from '../CarStore';
+import { useSettings } from '../SettingsStore';
 import { presetModels, presetColors } from '../constants';
 import CarCard from '../components/CarCard';
 
-export default function HomeScreen({ onAdd, onOpen }) {
+export default function HomeScreen({ onAdd, onOpen, onSettings }) {
   const { cars } = useCarStore();
+  const { theme, glass } = useSettings();
   const { width } = useWindowDimensions();
   const numColumns = width >= 1024 ? 5 : width >= 768 ? 4 : width >= 600 ? 3 : 2;
+  const s = createStyles(theme);
+
   const [search, setSearch] = useState('');
   const [filterModel, setFilterModel] = useState(null);
   const [filterColor, setFilterColor] = useState(null);
@@ -21,8 +25,9 @@ export default function HomeScreen({ onAdd, onOpen }) {
       if (filterModel && c.modelName !== filterModel) return false;
       if (filterColor && c.colorName !== filterColor) return false;
       if (search) {
-        const q = search.toLowerCase();
-        const hay = `${c.modelName} ${c.colorName} ${c.note} ${c.price} ${c.currency} ${c.purchaseLocation}`.toLowerCase();
+        const q = search.trim().toLowerCase();
+        const hay =
+          `${c.modelName} ${c.modelNumber} ${c.colorName} ${c.note} ${c.price} ${c.currency} ${c.purchaseLocation}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
       return true;
@@ -31,59 +36,70 @@ export default function HomeScreen({ onAdd, onOpen }) {
 
   const hasFilter = !!(filterModel || filterColor || search);
 
+  const headerStyle = glass
+    ? { backgroundColor: theme.glass, borderBottomColor: theme.glassBorder }
+    : { backgroundColor: theme.card, borderBottomColor: theme.border };
+  const panelStyle = glass
+    ? { backgroundColor: theme.glass, borderColor: theme.glassBorder }
+    : { backgroundColor: theme.card, borderColor: theme.border };
+
   return (
-    <View style={styles.container}>
+    <View style={s.container}>
       {/* 顶栏 */}
-      <View style={styles.header}>
-        <Text style={styles.title}>我的多美卡</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={onAdd} activeOpacity={0.8}>
-          <Text style={styles.addBtnText}>＋ 添加</Text>
+      <View style={[s.header, headerStyle]}>
+        <TouchableOpacity style={s.gearBtn} onPress={onSettings} activeOpacity={0.7}>
+          <Text style={s.gear}>⚙</Text>
+        </TouchableOpacity>
+        <Text style={s.title}>我的多美卡</Text>
+        <TouchableOpacity style={s.addBtn} onPress={onAdd} activeOpacity={0.8}>
+          <Text style={s.addBtnText}>＋ 添加</Text>
         </TouchableOpacity>
       </View>
 
       {/* 搜索 */}
       <TextInput
-        style={styles.search}
-        placeholder="搜索型号 / 颜色 / 备注"
-        placeholderTextColor="#999"
+        style={s.search}
+        placeholder="搜索型号 / 编号 / 颜色 / 备注"
+        placeholderTextColor={theme.placeholder}
         value={search}
         onChangeText={setSearch}
       />
 
       {/* 筛选按钮 */}
-      <View style={styles.filterRow}>
+      <View style={s.filterRow}>
         <TouchableOpacity
-          style={[styles.filterBtn, hasFilter && styles.filterBtnActive]}
+          style={[s.filterBtn, hasFilter && s.filterBtnActive]}
           onPress={() => setShowFilter((v) => !v)}
         >
-          <Text style={[styles.filterBtnText, hasFilter && styles.filterBtnTextActive]}>
+          <Text style={[s.filterBtnText, hasFilter && s.filterBtnTextActive]}>
             {hasFilter ? '筛选 ✓' : '筛选'}
           </Text>
         </TouchableOpacity>
         {filterModel ? (
-          <Text style={styles.activeChip} onPress={() => setFilterModel(null)}>{filterModel} ✕</Text>
+          <Text style={s.activeChip} onPress={() => setFilterModel(null)}>{filterModel} ✕</Text>
         ) : null}
         {filterColor ? (
-          <Text style={styles.activeChip} onPress={() => setFilterColor(null)}>{filterColor} ✕</Text>
+          <Text style={s.activeChip} onPress={() => setFilterColor(null)}>{filterColor} ✕</Text>
         ) : null}
       </View>
 
       {/* 筛选面板 */}
       {showFilter && (
-        <View style={styles.filterPanel}>
-          <Text style={styles.filterLabel}>按型号</Text>
+        <View style={[s.filterPanel, panelStyle]}>
+          <Text style={s.filterLabel}>按型号</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 6 }}>
-            <Chip label="全部" active={!filterModel} onPress={() => setFilterModel(null)} />
+            <Chip theme={theme} label="全部" active={!filterModel} onPress={() => setFilterModel(null)} />
             {presetModels.map((m) => (
-              <Chip key={m} label={m} active={filterModel === m} onPress={() => setFilterModel(m)} />
+              <Chip key={m.name} theme={theme} label={m.name} active={filterModel === m.name} onPress={() => setFilterModel(m.name)} />
             ))}
           </ScrollView>
-          <Text style={styles.filterLabel}>按颜色</Text>
+          <Text style={s.filterLabel}>按颜色</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <Chip label="全部" active={!filterColor} onPress={() => setFilterColor(null)} />
+            <Chip theme={theme} label="全部" active={!filterColor} onPress={() => setFilterColor(null)} />
             {presetColors.map((c) => (
               <Chip
                 key={c.name}
+                theme={theme}
                 label={c.name}
                 dot={c.hex}
                 active={filterColor === c.name}
@@ -95,7 +111,7 @@ export default function HomeScreen({ onAdd, onOpen }) {
             <TouchableOpacity
               onPress={() => { setFilterModel(null); setFilterColor(null); setSearch(''); }}
             >
-              <Text style={styles.clearText}>清除全部筛选</Text>
+              <Text style={s.clearText}>清除全部筛选</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -103,10 +119,10 @@ export default function HomeScreen({ onAdd, onOpen }) {
 
       {/* 列表 */}
       {cars.length === 0 ? (
-        <View style={styles.emptyWrap}>
-          <Text style={styles.emptyIcon}>🚗</Text>
-          <Text style={styles.emptyTitle}>还没有收藏</Text>
-          <Text style={styles.emptySub}>点右上角「添加」拍下你的第一辆多美卡</Text>
+        <View style={s.emptyWrap}>
+          <Text style={s.emptyIcon}>🚗</Text>
+          <Text style={s.emptyTitle}>还没有收藏</Text>
+          <Text style={s.emptySub}>点右上角「添加」拍下你的第一辆多美卡</Text>
         </View>
       ) : (
         <FlatList
@@ -116,8 +132,8 @@ export default function HomeScreen({ onAdd, onOpen }) {
           columnWrapperStyle={{ flex: 1 }}
           renderItem={({ item }) => <CarCard car={item} onPress={() => onOpen(item.id)} />}
           ListEmptyComponent={
-            <View style={styles.emptyWrap}>
-              <Text style={styles.emptySub}>没有符合条件的结果</Text>
+            <View style={s.emptyWrap}>
+              <Text style={s.emptySub}>没有符合条件的结果</Text>
             </View>
           }
           contentContainerStyle={{ padding: 6, flexGrow: 1 }}
@@ -127,57 +143,74 @@ export default function HomeScreen({ onAdd, onOpen }) {
   );
 }
 
-function Chip({ label, active, onPress, dot }) {
+function Chip({ theme, label, active, onPress, dot }) {
   return (
     <TouchableOpacity
-      style={[styles.chip, active && styles.chipActive]}
+      style={[
+        styles.chip,
+        { backgroundColor: theme.chip },
+        active && { backgroundColor: theme.accent },
+      ]}
       onPress={onPress}
       activeOpacity={0.7}
     >
       {dot ? <View style={[styles.chipDot, { backgroundColor: dot }]} /> : null}
-      <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
+      <Text style={[styles.chipText, { color: active ? '#fff' : theme.chipText }]}>{label}</Text>
     </TouchableOpacity>
   );
 }
 
+function createStyles(theme) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.bg },
+    header: {
+      flexDirection: 'row', alignItems: 'center',
+      paddingHorizontal: 16, paddingTop: 12, paddingBottom: 10,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    gearBtn: {
+      width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center',
+      backgroundColor: theme.chip,
+    },
+    gear: { fontSize: 18, color: theme.text2 },
+    title: { flex: 1, fontSize: 22, fontWeight: '700', color: theme.text, marginLeft: 12 },
+    addBtn: { backgroundColor: theme.accent, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 22 },
+    addBtnText: { color: '#fff', fontWeight: '600', fontSize: 15 },
+    search: {
+      marginHorizontal: 16, marginTop: 10, marginBottom: 8, paddingHorizontal: 16, paddingVertical: 10,
+      backgroundColor: theme.card, borderRadius: 14, fontSize: 14, color: theme.text,
+      borderWidth: 1, borderColor: theme.border,
+    },
+    filterRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 6 },
+    filterBtn: {
+      paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
+      backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border,
+    },
+    filterBtnActive: { backgroundColor: theme.accentSoft, borderColor: theme.accent },
+    filterBtnText: { fontSize: 13, color: theme.text2 },
+    filterBtnTextActive: { color: theme.accent, fontWeight: '600' },
+    activeChip: {
+      marginLeft: 8, fontSize: 13, color: theme.accent, backgroundColor: theme.accentSoft,
+      paddingHorizontal: 10, paddingVertical: 4, borderRadius: 14,
+    },
+    filterPanel: {
+      marginHorizontal: 16, marginBottom: 8, padding: 14,
+      borderRadius: 18, borderWidth: 1,
+    },
+    filterLabel: { fontSize: 13, fontWeight: '600', color: theme.text2, marginBottom: 4 },
+    clearText: { marginTop: 8, color: theme.danger, fontSize: 13 },
+    emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+    emptyIcon: { fontSize: 60, marginBottom: 12 },
+    emptyTitle: { fontSize: 18, fontWeight: '600', color: theme.text },
+    emptySub: { fontSize: 14, color: theme.text3, marginTop: 6, textAlign: 'center' },
+  });
+}
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F6F8' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8,
-  },
-  title: { fontSize: 24, fontWeight: '700', color: '#1a1a1a' },
-  addBtn: { backgroundColor: '#1E88E5', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
-  addBtnText: { color: '#fff', fontWeight: '600', fontSize: 15 },
-  search: {
-    marginHorizontal: 16, marginBottom: 8, paddingHorizontal: 14, paddingVertical: 8,
-    backgroundColor: '#fff', borderRadius: 10, fontSize: 14,
-  },
-  filterRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, marginBottom: 6 },
-  filterBtn: {
-    paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16,
-    backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd',
-  },
-  filterBtnActive: { backgroundColor: '#E3F2FD', borderColor: '#1E88E5' },
-  filterBtnText: { fontSize: 13, color: '#555' },
-  filterBtnTextActive: { color: '#1E88E5', fontWeight: '600' },
-  activeChip: { marginLeft: 8, fontSize: 13, color: '#1E88E5', backgroundColor: '#E3F2FD', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 },
-  filterPanel: {
-    marginHorizontal: 16, marginBottom: 8, padding: 12,
-    backgroundColor: '#fff', borderRadius: 12,
-  },
-  filterLabel: { fontSize: 13, fontWeight: '600', color: '#333', marginBottom: 4 },
   chip: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: 16, backgroundColor: '#F0F0F0', marginRight: 8,
+    borderRadius: 18, marginRight: 8,
   },
-  chipActive: { backgroundColor: '#1E88E5' },
-  chipText: { fontSize: 13, color: '#444' },
-  chipTextActive: { color: '#fff' },
+  chipText: { fontSize: 13 },
   chipDot: { width: 10, height: 10, borderRadius: 5, marginRight: 5 },
-  clearText: { marginTop: 8, color: '#E53935', fontSize: 13 },
-  emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  emptyIcon: { fontSize: 60, marginBottom: 12 },
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: '#333' },
-  emptySub: { fontSize: 14, color: '#999', marginTop: 6, textAlign: 'center' },
 });
