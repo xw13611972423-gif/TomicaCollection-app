@@ -2,7 +2,7 @@
   "expo": {
     "name": "TomicaCollection-app",
     "slug": "TomicaCollection-app",
-    "version": "1.0.0",
+    "version": "2.0.0beta",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
