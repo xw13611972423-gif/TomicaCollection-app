@@ -17,6 +17,9 @@ export default function CarCard({ car, onPress }) {
           <View style={[styles.dot, { backgroundColor: car.colorHex || '#999' }]} />
           <Text style={styles.color} numberOfLines={1}>{car.colorName}</Text>
         </View>
+        {car.price ? (
+          <Text style={styles.price} numberOfLines={1}>{car.currency}{car.price}</Text>
+        ) : null}
       </View>
     </TouchableOpacity>
   );
@@ -50,4 +53,5 @@ const styles = StyleSheet.create({
   colorRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
   dot: { width: 10, height: 10, borderRadius: 5, marginRight: 5 },
   color: { fontSize: 12, color: '#888' },
+  price: { fontSize: 13, fontWeight: '600', color: '#E53935', marginTop: 4 },
 });
