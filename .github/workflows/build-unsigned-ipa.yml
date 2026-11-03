@@ -22,13 +22,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Patch expo-modules-jsi concurrency flag
+      - name: Patch expo-modules-jsi strict concurrency
         run: |
-          perl -ni -e 'print unless /NonisolatedNonsendingByDefault/' node_modules/expo-modules-jsi/apple/Package.swift
-          if grep -q "NonisolatedNonsendingByDefault" node_modules/expo-modules-jsi/apple/Package.swift; then
-            echo "ERROR: patch failed"; exit 1
-          else
+          perl -pi -e 's/\.enableUpcomingFeature\("NonisolatedNonsendingByDefault"\),/.unsafeFlags(["-strict-concurrency=minimal"]),/' node_modules/expo-modules-jsi/apple/Package.swift
+          if grep -q 'strict-concurrency=minimal' node_modules/expo-modules-jsi/apple/Package.swift; then
             echo "patched OK"
+          else
+            echo "ERROR: patch failed"; exit 1
           fi
 
       - name: Prebuild iOS project
