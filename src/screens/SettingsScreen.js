@@ -56,7 +56,7 @@ export default function SettingsScreen({ onBack }) {
           </View>
         </View>
 
-        <Text style={s.about}>多美卡收藏 · v1.2</Text>
+        <Text style={s.about}>多美卡收藏 · v2.0.0beta</Text>
       </ScrollView>
     </View>
   );
