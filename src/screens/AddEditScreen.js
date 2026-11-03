@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, TextInput, Image, TouchableOpacity,
   ScrollView, Alert, StyleSheet,
@@ -6,8 +6,9 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { useCarStore } from '../CarStore';
 import { normalizeImageUri } from '../storage';
-import { presetModels, presetColors, CUSTOM_MODEL_MARKER } from '../constants';
+import { presetModels, presetColors, presetCurrencies, presetLocations, CUSTOM_MODEL_MARKER } from '../constants';
 import ColorSwatch from '../components/ColorSwatch';
+import ColorPicker from '../components/ColorPicker';
 
 export default function AddEditScreen({ carId, onDone, onCancel }) {
   const { cars, addCar, updateCar } = useCarStore();
@@ -15,11 +16,14 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
 
   const [modelName, setModelName] = useState(editingCar?.modelName || '');
   const [customModel, setCustomModel] = useState('');
+  const [modelSearch, setModelSearch] = useState('');
   const [colorName, setColorName] = useState(editingCar?.colorName || '');
   const [colorHex, setColorHex] = useState(editingCar?.colorHex || '#E53935');
-  const [customHex, setCustomHex] = useState('');
   const [note, setNote] = useState(editingCar?.note || '');
   const [imageUri, setImageUri] = useState(editingCar?.imageUri || null);
+  const [price, setPrice] = useState(editingCar?.price || '');
+  const [currency, setCurrency] = useState(editingCar?.currency || '¥');
+  const [purchaseLocation, setPurchaseLocation] = useState(editingCar?.purchaseLocation || '');
 
   // 若编辑的型号不在预置清单，走「自定义」输入
   useEffect(() => {
@@ -30,6 +34,12 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
   }, []);
 
   const finalModelName = modelName === CUSTOM_MODEL_MARKER ? customModel.trim() : modelName.trim();
+
+  const shownModels = useMemo(() => {
+    const q = modelSearch.trim().toLowerCase();
+    if (!q) return presetModels;
+    return presetModels.filter((m) => m.toLowerCase().includes(q));
+  }, [modelSearch]);
 
   const pickCamera = async () => {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
@@ -60,6 +70,9 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
       colorHex: colorHex || '#999999',
       note,
       imageUri,
+      price: price.trim(),
+      currency,
+      purchaseLocation: purchaseLocation.trim(),
     };
     if (editingCar) await updateCar(editingCar.id, data);
     else await addCar(data);
@@ -100,8 +113,15 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
 
         {/* 型号 */}
         <Text style={styles.label}>型号</Text>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="搜索型号…"
+          placeholderTextColor="#999"
+          value={modelSearch}
+          onChangeText={setModelSearch}
+        />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 6 }}>
-          {presetModels.map((m) => (
+          {shownModels.map((m) => (
             <TouchableOpacity
               key={m}
               style={[styles.modelChip, modelName === m && styles.modelChipActive]}
@@ -119,6 +139,9 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
             </Text>
           </TouchableOpacity>
         </ScrollView>
+        {shownModels.length === 0 && (
+          <Text style={styles.hint}>预置清单里没有「{modelSearch.trim()}」，可选「{CUSTOM_MODEL_MARKER}」手动输入</Text>
+        )}
         {modelName === CUSTOM_MODEL_MARKER && (
           <TextInput
             style={styles.input}
@@ -128,8 +151,49 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
           />
         )}
 
+        {/* 价格 */}
+        <Text style={styles.label}>价格</Text>
+        <View style={styles.currencyRow}>
+          {presetCurrencies.map((cur) => (
+            <TouchableOpacity
+              key={cur}
+              style={[styles.curChip, currency === cur && styles.curChipActive]}
+              onPress={() => setCurrency(cur)}
+            >
+              <Text style={[styles.curChipText, currency === cur && styles.curChipTextActive]}>{cur}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <TextInput
+          style={styles.input}
+          placeholder="金额，如：59.9"
+          keyboardType="decimal-pad"
+          value={price}
+          onChangeText={setPrice}
+        />
+
+        {/* 购买地 */}
+        <Text style={styles.label}>购买地</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 6 }}>
+          {presetLocations.map((loc) => (
+            <TouchableOpacity
+              key={loc}
+              style={[styles.modelChip, purchaseLocation === loc && styles.modelChipActive]}
+              onPress={() => setPurchaseLocation(loc)}
+            >
+              <Text style={[styles.modelChipText, purchaseLocation === loc && styles.modelChipTextActive]}>{loc}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        <TextInput
+          style={styles.input}
+          placeholder="或输入购买地，如：大阪玩具店"
+          value={purchaseLocation}
+          onChangeText={setPurchaseLocation}
+        />
+
         {/* 颜色 */}
-        <Text style={styles.label}>颜色</Text>
+        <Text style={styles.label}>颜色（快捷）</Text>
         <View style={styles.swatchWrap}>
           {presetColors.map((c) => (
             <ColorSwatch
@@ -137,39 +201,22 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
               name={c.name}
               hex={c.hex}
               selected={colorHex === c.hex && colorName === c.name}
-              onPress={() => { setColorName(c.name); setColorHex(c.hex); setCustomHex(''); }}
+              onPress={() => { setColorName(c.name); setColorHex(c.hex); }}
             />
           ))}
         </View>
 
-        <Text style={styles.label}>自定义颜色（十六进制）</Text>
-        <View style={styles.hexRow}>
-          <TextInput
-            style={[styles.input, { flex: 1 }]}
-            placeholder="#FF0000"
-            value={customHex}
-            onChangeText={(t) => {
-              setCustomHex(t);
-              const h = t.startsWith('#') ? t : '#' + t;
-              if (/^#[0-9A-Fa-f]{6}$/.test(h)) {
-                setColorHex(h);
-                setColorName('自定义');
-              }
-            }}
-          />
-          <View
-            style={[
-              styles.hexPreview,
-              { backgroundColor: /^#?[0-9A-Fa-f]{6}$/.test(customHex) ? (customHex.startsWith('#') ? customHex : '#' + customHex) : '#ccc' },
-            ]}
-          />
-        </View>
+        <Text style={styles.label}>细节色盘</Text>
+        <ColorPicker
+          value={colorHex}
+          onChange={(hex) => { setColorHex(hex); setColorName('自定义'); }}
+        />
 
         {/* 备注 */}
         <Text style={styles.label}>备注（可选）</Text>
         <TextInput
           style={[styles.input, styles.noteInput]}
-          placeholder="备注，如：购入价格、来源等"
+          placeholder="备注，如：特殊版本、入手故事等"
           value={note}
           onChangeText={setNote}
           multiline
@@ -201,6 +248,11 @@ const styles = StyleSheet.create({
   photoBtnDanger: { borderColor: '#E53935' },
   photoBtnText: { fontSize: 14, color: '#333' },
   photoBtnTextDanger: { fontSize: 14, color: '#E53935' },
+  searchInput: {
+    backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8,
+    fontSize: 14, marginBottom: 8, borderWidth: 1, borderColor: '#eee',
+  },
+  hint: { fontSize: 12, color: '#E53935', marginBottom: 8 },
   modelChip: {
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 18,
     backgroundColor: '#fff', marginRight: 8,
@@ -208,12 +260,19 @@ const styles = StyleSheet.create({
   modelChipActive: { backgroundColor: '#1E88E5' },
   modelChipText: { fontSize: 13, color: '#444' },
   modelChipTextActive: { color: '#fff', fontWeight: '600' },
+  currencyRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 },
+  curChip: {
+    paddingHorizontal: 16, paddingVertical: 7, borderRadius: 16,
+    backgroundColor: '#fff', marginRight: 8, marginBottom: 4,
+    borderWidth: 1, borderColor: '#ddd',
+  },
+  curChipActive: { backgroundColor: '#1E88E5', borderColor: '#1E88E5' },
+  curChipText: { fontSize: 14, color: '#444' },
+  curChipTextActive: { color: '#fff', fontWeight: '600' },
   swatchWrap: { flexDirection: 'row', flexWrap: 'wrap' },
-  hexRow: { flexDirection: 'row', alignItems: 'center' },
   input: {
     backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 14,
     paddingVertical: 10, fontSize: 14, borderWidth: 1, borderColor: '#eee',
   },
   noteInput: { minHeight: 64, textAlignVertical: 'top' },
-  hexPreview: { width: 40, height: 40, borderRadius: 8, marginLeft: 10, borderWidth: 1, borderColor: '#ddd' },
 });
