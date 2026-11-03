@@ -45,7 +45,8 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_IDENTITY=""
+            CODE_SIGNING_IDENTITY="" \
+            SWIFT_STRICT_CONCURRENCY=minimal
 
       - name: Package IPA
         run: |
