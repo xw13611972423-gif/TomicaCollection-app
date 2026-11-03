@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useCarStore } from '../CarStore';
+import { useSettings } from '../SettingsStore';
 import { normalizeImageUri } from '../storage';
 import { presetModels, presetColors, presetCurrencies, presetLocations, CUSTOM_MODEL_MARKER } from '../constants';
 import ColorSwatch from '../components/ColorSwatch';
@@ -12,9 +13,12 @@ import ColorPicker from '../components/ColorPicker';
 
 export default function AddEditScreen({ carId, onDone, onCancel }) {
   const { cars, addCar, updateCar } = useCarStore();
+  const { theme, glass } = useSettings();
+  const s = createStyles(theme);
   const editingCar = carId ? cars.find((c) => c.id === carId) : null;
 
   const [modelName, setModelName] = useState(editingCar?.modelName || '');
+  const [modelNumber, setModelNumber] = useState(editingCar?.modelNumber || '');
   const [customModel, setCustomModel] = useState('');
   const [modelSearch, setModelSearch] = useState('');
   const [colorName, setColorName] = useState(editingCar?.colorName || '');
@@ -27,18 +31,21 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
 
   // 若编辑的型号不在预置清单，走「自定义」输入
   useEffect(() => {
-    if (editingCar && editingCar.modelName && !presetModels.includes(editingCar.modelName)) {
+    if (editingCar && editingCar.modelName && !presetModels.some((m) => m.name === editingCar.modelName)) {
       setModelName(CUSTOM_MODEL_MARKER);
       setCustomModel(editingCar.modelName);
     }
   }, []);
 
   const finalModelName = modelName === CUSTOM_MODEL_MARKER ? customModel.trim() : modelName.trim();
+  const finalModelNumber = modelNumber.trim();
 
   const shownModels = useMemo(() => {
     const q = modelSearch.trim().toLowerCase();
     if (!q) return presetModels;
-    return presetModels.filter((m) => m.toLowerCase().includes(q));
+    return presetModels.filter(
+      (m) => m.name.toLowerCase().includes(q) || m.number.includes(q)
+    );
   }, [modelSearch]);
 
   const pickCamera = async () => {
@@ -66,6 +73,7 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
     if (!model) { Alert.alert('提示', '请选择或输入型号'); return; }
     const data = {
       modelName: model,
+      modelNumber: finalModelNumber,
       colorName: colorName || '未指定',
       colorHex: colorHex || '#999999',
       note,
@@ -79,122 +87,141 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
     onDone();
   };
 
+  const headerStyle = glass
+    ? { backgroundColor: theme.glass, borderBottomColor: theme.glassBorder }
+    : { backgroundColor: theme.card, borderBottomColor: theme.border };
+
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onCancel}><Text style={styles.cancel}>取消</Text></TouchableOpacity>
-        <Text style={styles.title}>{editingCar ? '编辑多美卡' : '添加多美卡'}</Text>
-        <TouchableOpacity onPress={save}><Text style={styles.save}>保存</Text></TouchableOpacity>
+    <View style={s.container}>
+      <View style={[s.header, headerStyle]}>
+        <TouchableOpacity onPress={onCancel}><Text style={s.cancel}>取消</Text></TouchableOpacity>
+        <Text style={s.title}>{editingCar ? '编辑多美卡' : '添加多美卡'}</Text>
+        <TouchableOpacity onPress={save}><Text style={s.save}>保存</Text></TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={s.body} keyboardShouldPersistTaps="handled">
         {/* 照片 */}
-        <Text style={styles.label}>照片</Text>
+        <Text style={s.label}>照片</Text>
         {imageUri ? (
-          <Image source={{ uri: imageUri }} style={styles.preview} resizeMode="cover" />
+          <Image source={{ uri: imageUri }} style={s.preview} resizeMode="cover" />
         ) : (
-          <View style={[styles.preview, styles.previewEmpty]}>
+          <View style={[s.preview, s.previewEmpty]}>
             <Text style={{ fontSize: 44 }}>🚗</Text>
           </View>
         )}
-        <View style={styles.btnRow}>
-          <TouchableOpacity style={styles.photoBtn} onPress={pickCamera}>
-            <Text style={styles.photoBtnText}>📷 拍照</Text>
+        <View style={s.btnRow}>
+          <TouchableOpacity style={s.photoBtn} onPress={pickCamera}>
+            <Text style={s.photoBtnText}>📷 拍照</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.photoBtn} onPress={pickLibrary}>
-            <Text style={styles.photoBtnText}>🖼 相册</Text>
+          <TouchableOpacity style={s.photoBtn} onPress={pickLibrary}>
+            <Text style={s.photoBtnText}>🖼 相册</Text>
           </TouchableOpacity>
           {imageUri ? (
-            <TouchableOpacity style={[styles.photoBtn, styles.photoBtnDanger]} onPress={() => setImageUri(null)}>
-              <Text style={styles.photoBtnTextDanger}>移除</Text>
+            <TouchableOpacity style={[s.photoBtn, s.photoBtnDanger]} onPress={() => setImageUri(null)}>
+              <Text style={s.photoBtnTextDanger}>移除</Text>
             </TouchableOpacity>
           ) : null}
         </View>
 
         {/* 型号 */}
-        <Text style={styles.label}>型号</Text>
+        <Text style={s.label}>型号</Text>
         <TextInput
-          style={styles.searchInput}
-          placeholder="搜索型号…"
-          placeholderTextColor="#999"
+          style={s.searchInput}
+          placeholder="搜索型号或编号…"
+          placeholderTextColor={theme.placeholder}
           value={modelSearch}
           onChangeText={setModelSearch}
         />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 6 }}>
           {shownModels.map((m) => (
             <TouchableOpacity
-              key={m}
-              style={[styles.modelChip, modelName === m && styles.modelChipActive]}
-              onPress={() => setModelName(m)}
+              key={m.name}
+              style={[s.modelChip, modelName === m.name && s.modelChipActive]}
+              onPress={() => { setModelName(m.name); setModelNumber(m.number); }}
             >
-              <Text style={[styles.modelChipText, modelName === m && styles.modelChipTextActive]}>{m}</Text>
+              <Text style={[s.modelChipText, modelName === m.name && s.modelChipTextActive]}>{m.name}</Text>
             </TouchableOpacity>
           ))}
           <TouchableOpacity
-            style={[styles.modelChip, modelName === CUSTOM_MODEL_MARKER && styles.modelChipActive]}
+            style={[s.modelChip, modelName === CUSTOM_MODEL_MARKER && s.modelChipActive]}
             onPress={() => setModelName(CUSTOM_MODEL_MARKER)}
           >
-            <Text style={[styles.modelChipText, modelName === CUSTOM_MODEL_MARKER && styles.modelChipTextActive]}>
+            <Text style={[s.modelChipText, modelName === CUSTOM_MODEL_MARKER && s.modelChipTextActive]}>
               {CUSTOM_MODEL_MARKER}
             </Text>
           </TouchableOpacity>
         </ScrollView>
         {shownModels.length === 0 && (
-          <Text style={styles.hint}>预置清单里没有「{modelSearch.trim()}」，可选「{CUSTOM_MODEL_MARKER}」手动输入</Text>
+          <Text style={s.hint}>预置清单里没有「{modelSearch.trim()}」，可选「{CUSTOM_MODEL_MARKER}」手动输入</Text>
         )}
         {modelName === CUSTOM_MODEL_MARKER && (
           <TextInput
-            style={styles.input}
+            style={s.input}
             placeholder="输入型号，如：丰田 皇冠"
+            placeholderTextColor={theme.placeholder}
             value={customModel}
             onChangeText={setCustomModel}
           />
         )}
 
+        {/* 编号 */}
+        <Text style={s.label}>编号（三位数）</Text>
+        <TextInput
+          style={s.input}
+          placeholder="如：055"
+          placeholderTextColor={theme.placeholder}
+          keyboardType="number-pad"
+          maxLength={4}
+          value={modelNumber}
+          onChangeText={setModelNumber}
+        />
+
         {/* 价格 */}
-        <Text style={styles.label}>价格</Text>
-        <View style={styles.currencyRow}>
+        <Text style={s.label}>价格</Text>
+        <View style={s.currencyRow}>
           {presetCurrencies.map((cur) => (
             <TouchableOpacity
               key={cur}
-              style={[styles.curChip, currency === cur && styles.curChipActive]}
+              style={[s.curChip, currency === cur && s.curChipActive]}
               onPress={() => setCurrency(cur)}
             >
-              <Text style={[styles.curChipText, currency === cur && styles.curChipTextActive]}>{cur}</Text>
+              <Text style={[s.curChipText, currency === cur && s.curChipTextActive]}>{cur}</Text>
             </TouchableOpacity>
           ))}
         </View>
         <TextInput
-          style={styles.input}
+          style={s.input}
           placeholder="金额，如：59.9"
+          placeholderTextColor={theme.placeholder}
           keyboardType="decimal-pad"
           value={price}
           onChangeText={setPrice}
         />
 
         {/* 购买地 */}
-        <Text style={styles.label}>购买地</Text>
+        <Text style={s.label}>购买地</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 6 }}>
           {presetLocations.map((loc) => (
             <TouchableOpacity
               key={loc}
-              style={[styles.modelChip, purchaseLocation === loc && styles.modelChipActive]}
+              style={[s.modelChip, purchaseLocation === loc && s.modelChipActive]}
               onPress={() => setPurchaseLocation(loc)}
             >
-              <Text style={[styles.modelChipText, purchaseLocation === loc && styles.modelChipTextActive]}>{loc}</Text>
+              <Text style={[s.modelChipText, purchaseLocation === loc && s.modelChipTextActive]}>{loc}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
         <TextInput
-          style={styles.input}
+          style={s.input}
           placeholder="或输入购买地，如：大阪玩具店"
+          placeholderTextColor={theme.placeholder}
           value={purchaseLocation}
           onChangeText={setPurchaseLocation}
         />
 
         {/* 颜色 */}
-        <Text style={styles.label}>颜色（快捷）</Text>
-        <View style={styles.swatchWrap}>
+        <Text style={s.label}>颜色（快捷）</Text>
+        <View style={s.swatchWrap}>
           {presetColors.map((c) => (
             <ColorSwatch
               key={c.name}
@@ -206,17 +233,18 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
           ))}
         </View>
 
-        <Text style={styles.label}>细节色盘</Text>
+        <Text style={s.label}>细节色盘</Text>
         <ColorPicker
           value={colorHex}
           onChange={(hex) => { setColorHex(hex); setColorName('自定义'); }}
         />
 
         {/* 备注 */}
-        <Text style={styles.label}>备注（可选）</Text>
+        <Text style={s.label}>备注（可选）</Text>
         <TextInput
-          style={[styles.input, styles.noteInput]}
+          style={[s.input, s.noteInput]}
           placeholder="备注，如：特殊版本、入手故事等"
+          placeholderTextColor={theme.placeholder}
           value={note}
           onChangeText={setNote}
           multiline
@@ -226,53 +254,55 @@ export default function AddEditScreen({ carId, onDone, onCancel }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F6F8' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 14, backgroundColor: '#fff',
-    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#ddd',
-  },
-  title: { fontSize: 17, fontWeight: '600', color: '#1a1a1a' },
-  cancel: { fontSize: 15, color: '#888' },
-  save: { fontSize: 15, color: '#1E88E5', fontWeight: '600' },
-  body: { padding: 16, paddingBottom: 40 },
-  label: { fontSize: 14, fontWeight: '600', color: '#333', marginTop: 16, marginBottom: 8 },
-  preview: { width: '100%', height: 200, borderRadius: 12, backgroundColor: '#eee' },
-  previewEmpty: { alignItems: 'center', justifyContent: 'center' },
-  btnRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 10, gap: 8 },
-  photoBtn: {
-    paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20,
-    backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd',
-  },
-  photoBtnDanger: { borderColor: '#E53935' },
-  photoBtnText: { fontSize: 14, color: '#333' },
-  photoBtnTextDanger: { fontSize: 14, color: '#E53935' },
-  searchInput: {
-    backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8,
-    fontSize: 14, marginBottom: 8, borderWidth: 1, borderColor: '#eee',
-  },
-  hint: { fontSize: 12, color: '#E53935', marginBottom: 8 },
-  modelChip: {
-    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 18,
-    backgroundColor: '#fff', marginRight: 8,
-  },
-  modelChipActive: { backgroundColor: '#1E88E5' },
-  modelChipText: { fontSize: 13, color: '#444' },
-  modelChipTextActive: { color: '#fff', fontWeight: '600' },
-  currencyRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 },
-  curChip: {
-    paddingHorizontal: 16, paddingVertical: 7, borderRadius: 16,
-    backgroundColor: '#fff', marginRight: 8, marginBottom: 4,
-    borderWidth: 1, borderColor: '#ddd',
-  },
-  curChipActive: { backgroundColor: '#1E88E5', borderColor: '#1E88E5' },
-  curChipText: { fontSize: 14, color: '#444' },
-  curChipTextActive: { color: '#fff', fontWeight: '600' },
-  swatchWrap: { flexDirection: 'row', flexWrap: 'wrap' },
-  input: {
-    backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 14,
-    paddingVertical: 10, fontSize: 14, borderWidth: 1, borderColor: '#eee',
-  },
-  noteInput: { minHeight: 64, textAlignVertical: 'top' },
-});
+function createStyles(theme) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.bg },
+    header: {
+      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+      paddingHorizontal: 16, paddingVertical: 14,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    title: { fontSize: 17, fontWeight: '600', color: theme.text },
+    cancel: { fontSize: 15, color: theme.text2 },
+    save: { fontSize: 15, color: theme.accent, fontWeight: '600' },
+    body: { padding: 16, paddingBottom: 40 },
+    label: { fontSize: 14, fontWeight: '600', color: theme.text, marginTop: 16, marginBottom: 8 },
+    preview: { width: '100%', height: 200, borderRadius: 18, backgroundColor: theme.chip },
+    previewEmpty: { alignItems: 'center', justifyContent: 'center' },
+    btnRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 10, gap: 8 },
+    photoBtn: {
+      paddingHorizontal: 16, paddingVertical: 9, borderRadius: 22,
+      backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border,
+    },
+    photoBtnDanger: { borderColor: theme.danger },
+    photoBtnText: { fontSize: 14, color: theme.text },
+    photoBtnTextDanger: { fontSize: 14, color: theme.danger },
+    searchInput: {
+      backgroundColor: theme.card, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 9,
+      fontSize: 14, marginBottom: 8, borderWidth: 1, borderColor: theme.border, color: theme.text,
+    },
+    hint: { fontSize: 12, color: theme.danger, marginBottom: 8 },
+    modelChip: {
+      paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20,
+      backgroundColor: theme.card, marginRight: 8, borderWidth: 1, borderColor: theme.border,
+    },
+    modelChipActive: { backgroundColor: theme.accent, borderColor: theme.accent },
+    modelChipText: { fontSize: 13, color: theme.chipText },
+    modelChipTextActive: { color: '#fff', fontWeight: '600' },
+    currencyRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 },
+    curChip: {
+      paddingHorizontal: 16, paddingVertical: 7, borderRadius: 18,
+      backgroundColor: theme.card, marginRight: 8, marginBottom: 4,
+      borderWidth: 1, borderColor: theme.border,
+    },
+    curChipActive: { backgroundColor: theme.accent, borderColor: theme.accent },
+    curChipText: { fontSize: 14, color: theme.chipText },
+    curChipTextActive: { color: '#fff', fontWeight: '600' },
+    swatchWrap: { flexDirection: 'row', flexWrap: 'wrap' },
+    input: {
+      backgroundColor: theme.card, borderRadius: 14, paddingHorizontal: 14,
+      paddingVertical: 10, fontSize: 14, borderWidth: 1, borderColor: theme.border, color: theme.text,
+    },
+    noteInput: { minHeight: 64, textAlignVertical: 'top' },
+  });
+}
