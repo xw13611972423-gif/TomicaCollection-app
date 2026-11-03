@@ -3,11 +3,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ensureImagesDir, saveImageToDocuments, deleteImageFile } from './storage';
 
 const STORAGE_KEY = 'tomica_cars_v1';
+const CUSTOM_MODELS_KEY = 'tomica_custom_models_v1';
 
 const CarStoreContext = createContext(null);
 
 export function CarStoreProvider({ children }) {
   const [cars, setCars] = useState([]);
+  const [customModels, setCustomModels] = useState([]);
   const [loaded, setLoaded] = useState(false);
 
   // 启动时加载
@@ -17,6 +19,12 @@ export function CarStoreProvider({ children }) {
       try {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
         if (raw) setCars(JSON.parse(raw));
+      } catch (e) {
+        // 忽略
+      }
+      try {
+        const rawCustom = await AsyncStorage.getItem(CUSTOM_MODELS_KEY);
+        if (rawCustom) setCustomModels(JSON.parse(rawCustom));
       } catch (e) {
         // 忽略
       }
@@ -30,6 +38,17 @@ export function CarStoreProvider({ children }) {
   };
 
   const makeId = () => `car_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+  // 记住用户自定义的车型（去重，新加的排前面）
+  const addCustomModel = ({ name, number }) => {
+    if (!name) return;
+    setCustomModels((prev) => {
+      if (prev.some((m) => m.name === name)) return prev;
+      const next = [{ name, number: number || '' }, ...prev];
+      AsyncStorage.setItem(CUSTOM_MODELS_KEY, JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+  };
 
   const addCar = async ({ modelName, modelNumber, colorName, colorHex, note, imageUri, price, currency, purchaseLocation }) => {
     let savedImage = null;
@@ -91,7 +110,7 @@ export function CarStoreProvider({ children }) {
   };
 
   return (
-    <CarStoreContext.Provider value={{ cars, loaded, addCar, updateCar, deleteCar }}>
+    <CarStoreContext.Provider value={{ cars, loaded, addCar, updateCar, deleteCar, customModels, addCustomModel }}>
       {children}
     </CarStoreContext.Provider>
   );
