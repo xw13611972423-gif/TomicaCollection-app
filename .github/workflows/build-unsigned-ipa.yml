@@ -22,6 +22,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Patch expo-modules-jsi concurrency flag
+        run: |
+          perl -ni -e 'print unless /NonisolatedNonsendingByDefault/' node_modules/expo-modules-jsi/apple/Package.swift
+          if grep -q "NonisolatedNonsendingByDefault" node_modules/expo-modules-jsi/apple/Package.swift; then
+            echo "ERROR: patch failed"; exit 1
+          else
+            echo "patched OK"
+          fi
+
       - name: Prebuild iOS project
         run: CI=1 npx expo prebuild --platform ios --no-install
 
