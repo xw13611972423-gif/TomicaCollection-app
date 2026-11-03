@@ -85,7 +85,7 @@ export const presetColors = [
 export const CUSTOM_MODEL_MARKER = '自定义…';
 
 // 价格货币选项
-export const presetCurrencies = ['¥', '$', '€', '£', 'HK$', 'NT$'];
+export const presetCurrencies = ['¥', 'JPY', '$', '€', '£', 'HK$', 'NT$'];
 
 // 购买地快捷选项
 export const presetLocations = ['淘宝', '京东', '闲鱼', '日本', '香港', '实体店', '官网', '其他'];
